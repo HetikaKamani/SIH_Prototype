@@ -23,3 +23,8 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# YOLO
+*.pt
+runs/
+bus.jpg
