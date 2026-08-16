@@ -20,26 +20,31 @@ COMPLAINT_RULES = {
         "severity": "MEDIUM"
     },
 
-    "ac_leakage": {
-        "keywords": [
-            "ac leakage",
-            "ac leak",
-            "water leakage",
-            "water leaking",
-            "water dripping",
-            "ac se paani",
-            "ac se pani",
-            "paani gir",
-            "pani gir",
-            "ac problem",
-            "water is leaking",
-            "leaking from the ac"
-        ],
-        "category": "Coach Maintenance",
-        "subcategory": "AC Water Leakage",
-        "department": "Electrical/Maintenance",
-        "severity": "HIGH"
-    },
+"ac_leakage": {
+    "keywords": [
+        "ac leakage",
+        "ac leak",
+        "ac leaking",
+        "ac is leaking",
+        "water leakage",
+        "water leaking",
+        "water is leaking",
+        "water dripping",
+        "water is dripping",
+        "leaking from the ac",
+        "leaking water from ac",
+        "water leaking from ac",
+        "ac se paani",
+        "ac se pani",
+        "paani gir",
+        "pani gir",
+        "ac problem"
+    ],
+    "category": "Coach Maintenance",
+    "subcategory": "AC Water Leakage",
+    "department": "Electrical/Maintenance",
+    "severity": "HIGH"
+},
 
     "broken_seat": {
         "keywords": [
