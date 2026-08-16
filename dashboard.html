@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rail Madad — Officer Control Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="dashboard-body">
+    <div class="dashboard-shell dashboard-container">
+      <header class="dashboard-header">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">🚆</div>
+          <div class="brand-copy">
+            <h1>RAIL MADAD</h1>
+            <p>OFFICER CONTROL ROOM</p>
+            <small>AI Complaint Management</small>
+          </div>
+        </div>
+        <div class="system-status">
+          <span class="status-dot" aria-hidden="true"></span>
+          SYSTEM ONLINE
+        </div>
+      </header>
+
+      <main class="dashboard-main">
+        <section class="kpi-grid" aria-label="Complaint summary">
+          <article class="kpi-card">
+            <div class="kpi-label">TOTAL</div>
+            <div id="kpi-total" class="kpi-value">0</div>
+          </article>
+          <article class="kpi-card kpi-high">
+            <div class="kpi-label">HIGH</div>
+            <div id="kpi-high" class="kpi-value">0</div>
+          </article>
+          <article class="kpi-card kpi-medium">
+            <div class="kpi-label">MEDIUM</div>
+            <div id="kpi-medium" class="kpi-value">0</div>
+          </article>
+          <article class="kpi-card kpi-low">
+            <div class="kpi-label">LOW</div>
+            <div id="kpi-low" class="kpi-value">0</div>
+          </article>
+        </section>
+
+        <section class="toolbar" aria-label="Complaint filters and search">
+          <label class="search-box" aria-label="Search complaints">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" placeholder="Search complaints..." />
+          </label>
+
+          <div class="filter-row">
+            <label>
+              <span>Severity</span>
+              <select id="severityFilter">
+                <option value="All">All</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Status</span>
+              <select id="statusFilter">
+                <option value="All">All</option>
+                <option value="Pending">Pending</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Department</span>
+              <select id="departmentFilter">
+                <option value="All">All</option>
+                <option value="OBHS">OBHS</option>
+                <option value="Electrical/Maintenance">Electrical/Maintenance</option>
+                <option value="RPF">RPF</option>
+                <option value="Medical">Medical</option>
+                <option value="Coaching Depot / Electrical">Coaching Depot / Electrical</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Sort</span>
+              <select id="sortFilter">
+                <option value="newest">Newest / Complaint ID</option>
+                <option value="severity">Severity</option>
+                <option value="confidence">Confidence</option>
+              </select>
+            </label>
+
+            <button id="refreshBtn" type="button" class="refresh-btn">↻ Refresh</button>
+          </div>
+        </section>
+
+        <section class="map-panel" aria-label="Complaint map">
+          <div class="map-header">
+            <h3>Complaint Locations</h3>
+            <div class="map-legend" aria-label="Map severity legend">
+              <span><i class="legend-swatch high"></i> High</span>
+              <span><i class="legend-swatch medium"></i> Medium</span>
+              <span><i class="legend-swatch low"></i> Low</span>
+            </div>
+          </div>
+          <div class="map-wrapper">
+            <div id="complaintMap" aria-label="Map of complaint locations"></div>
+            <div id="mapEmptyState" class="map-empty-state hidden">No complaint locations available</div>
+          </div>
+        </section>
+
+        <section class="table-panel" aria-live="polite">
+          <div id="complaintsContainer"></div>
+          <div id="emptyState" class="empty-state hidden">
+            <h3>No complaints found</h3>
+            <p>Try changing your filters or search query.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="complaintModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-backdrop" data-close="modal"></div>
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="modal-kicker">Complaint Details</p>
+            <h2 id="modalTitle">Complaint</h2>
+          </div>
+          <button id="closeModalBtn" type="button" class="close-btn" aria-label="Close details">✕</button>
+        </div>
+        <div id="modalBody" class="modal-body"></div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="dashboard.js"></script>
+  </body>
+</html>

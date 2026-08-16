@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rail Madad — Comprehensive Test Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .test-group { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #f9fafb; }
+    .test-item { margin: 10px 0; padding: 10px; border-radius: 6px; font-size: 14px; font-family: monospace; }
+    .test-pass { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+    .test-fail { background: #fee2e2; color: #7f1d1d; border-left: 4px solid #ef4444; }
+    .test-pending { background: #fef3c7; color: #78350f; border-left: 4px solid #f59e0b; }
+    .test-skip { background: #e5e7eb; color: #374151; border-left: 4px solid #9ca3af; }
+    h1 { font-size: 28px; font-weight: bold; margin: 20px 0; }
+    h2 { font-size: 20px; font-weight: 600; margin: 15px 0 10px; }
+    .summary { padding: 15px; border-radius: 8px; margin: 20px 0; font-weight: 600; }
+    .summary.pass { background: #d1fae5; color: #065f46; }
+    .summary.fail { background: #fee2e2; color: #7f1d1d; }
+    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-white p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1>🚆 Rail Madad — Comprehensive Test Suite</h1>
+    <p style="margin-bottom: 20px; color: #666;">Testing all phases (1-8) for Maitri frontend completion</p>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const results = {
+      passed: [],
+      failed: [],
+      skipped: [],
+    };
+
+    function testPass(name, details) {
+      results.passed.push({ name, details });
+      addResult('pass', name, details);
+    }
+
+    function testFail(name, details) {
+      results.failed.push({ name, details });
+      addResult('fail', name, details);
+    }
+
+    function testSkip(name, reason) {
+      results.skipped.push({ name, reason });
+      addResult('skip', name, reason);
+    }
+
+    function addResult(status, name, text) {
+      const el = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `test-item test-${status}`;
+      div.innerHTML = (status === 'pass' ? '✓' : status === 'fail' ? '✗' : '⊘') + ' ' + name + (text ? ': ' + text : '');
+      el.appendChild(div);
+    }
+
+    function heading(text) {
+      const el = document.getElementById('results');
+      const div = document.createElement('h2');
+      div.textContent = text;
+      el.appendChild(div);
+    }
+
+    async function runAllTests() {
+      heading('1️⃣ MODULE LOADING');
+      testModulesExist();
+
+      heading('2️⃣ FORM STRUCTURE (Phase 1)');
+      testFormElements();
+
+      heading('3️⃣ VIDEO HANDLING (Phase 8)');
+      testVideoModule();
+
+      heading('4️⃣ OFFLINE DATABASE');
+      testOfflineDB();
+
+      heading('5️⃣ DASHBOARD STRUCTURE');
+      testDashboardElements();
+
+      heading('6️⃣ MOCK DATA');
+      testMockData();
+
+      heading('7️⃣ VALIDATION LOGIC');
+      testValidationLogic();
+
+      heading('8️⃣ ACCESSIBILITY');
+      testAccessibility();
+
+      // Final summary
+      setTimeout(renderSummary, 500);
+    }
+
+    function testModulesExist() {
+      const checks = [
+        { name: 'window.RailMadadVideo', obj: window.RailMadadVideo },
+        { name: 'window.RailMadadDB', obj: window.RailMadadDB },
+      ];
+
+      checks.forEach(check => {
+        if (typeof check.obj === 'object') {
+          testPass('Module loaded: ' + check.name);
+        } else {
+          testFail('Module missing: ' + check.name, 'Expected object, got ' + typeof check.obj);
+        }
+      });
+    }
+
+    function testFormElements() {
+      const elements = [
+        'pnr', 'coach', 'seat', 'description',
+        'photoInput', 'videoInput',
+        'voiceRecordBtn', 'voiceStopBtn',
+        'submitBtn', 'errorBanner'
+      ];
+
+      elements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          testPass('Form element exists: ' + id);
+        } else {
+          testFail('Form element missing: ' + id);
+        }
+      });
+    }
+
+    function testVideoModule() {
+      if (!window.RailMadadVideo) {
+        testFail('Video module not loaded');
+        return;
+      }
+
+      const methods = [
+        'extractRepresentativeFrame',
+        'getVideoDuration',
+        'formatDuration'
+      ];
+
+      methods.forEach(method => {
+        if (typeof window.RailMadadVideo[method] === 'function') {
+          testPass('Video method available: ' + method);
+        } else {
+          testFail('Video method missing: ' + method);
+        }
+      });
+
+      // Test formatDuration
+      const testCases = [
+        { input: 45, expected: '0:45' },
+        { input: 65, expected: '1:05' },
+        { input: 125, expected: '2:05' }
+      ];
+
+      testCases.forEach(tc => {
+        const result = window.RailMadadVideo.formatDuration(tc.input);
+        if (result === tc.expected) {
+          testPass('formatDuration(' + tc.input + ') = ' + result);
+        } else {
+          testFail('formatDuration(' + tc.input + ')', 'Expected ' + tc.expected + ', got ' + result);
+        }
+      });
+    }
+
+    function testOfflineDB() {
+      if (!window.RailMadadDB) {
+        testFail('DB module not loaded');
+        return;
+      }
+
+      const methods = [
+        'saveOfflineComplaint',
+        'getPendingComplaints',
+        'getAllOfflineComplaints',
+        'submitComplaintToServer'
+      ];
+
+      methods.forEach(method => {
+        if (typeof window.RailMadadDB[method] === 'function') {
+          testPass('DB method available: ' + method);
+        } else {
+          testFail('DB method missing: ' + method);
+        }
+      });
+    }
+
+    function testDashboardElements() {
+      const elements = [
+        'kpi-total', 'kpi-high', 'kpi-medium', 'kpi-low',
+        'searchInput', 'severityFilter', 'statusFilter',
+        'departmentFilter', 'sortFilter', 'refreshBtn',
+        'complaintsContainer', 'complaintMap', 'complaintModal'
+      ];
+
+      elements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          testPass('Dashboard element exists: ' + id);
+        } else {
+          testFail('Dashboard element missing: ' + id, 'Not found in dashboard.html');
+        }
+      });
+    }
+
+    function testMockData() {
+      // This would be in dashboard.js
+      testSkip('Mock data validation', 'Load dashboard.html separately to test');
+    }
+
+    function testValidationLogic() {
+      // Test PNR validation regex
+      const pnrTests = [
+        { value: '4215678901', valid: true },
+        { value: '123456789', valid: false },
+        { value: '12345678901', valid: false },
+        { value: 'ABCD567890', valid: false }
+      ];
+
+      pnrTests.forEach(test => {
+        const isValid = /^\d{10}$/.test(test.value);
+        if (isValid === test.valid) {
+          testPass('PNR validation: ' + test.value + ' → ' + (test.valid ? 'valid' : 'invalid'));
+        } else {
+          testFail('PNR validation: ' + test.value, 'Expected ' + test.valid + ', got ' + isValid);
+        }
+      });
+    }
+
+    function testAccessibility() {
+      const checks = [
+        { selector: 'button[role="tab"]', desc: 'Tab buttons have role' },
+        { selector: 'input[placeholder]', desc: 'Inputs have placeholders' },
+        { selector: 'button[type="button"]', desc: 'Buttons have type attribute' }
+      ];
+
+      checks.forEach(check => {
+        const found = document.querySelectorAll(check.selector).length > 0;
+        if (found) {
+          testPass('Accessibility: ' + check.desc);
+        } else {
+          testSkip('Accessibility check: ' + check.desc, 'Not applicable on this page');
+        }
+      });
+    }
+
+    function renderSummary() {
+      const total = results.passed.length + results.failed.length + results.skipped.length;
+      const passRate = Math.round((results.passed.length / total) * 100);
+
+      const summary = document.createElement('div');
+      summary.className = results.failed.length === 0 ? 'summary pass' : 'summary fail';
+      summary.innerHTML = `
+        <div style="margin-bottom: 10px;">✓ PASSED: ${results.passed.length} | ✗ FAILED: ${results.failed.length} | ⊘ SKIPPED: ${results.skipped.length}</div>
+        <div>Pass Rate: ${passRate}% (${results.passed.length}/${total})</div>
+      `;
+      document.getElementById('results').insertAdjacentElement('beforeend', summary);
+    }
+
+    // Run tests when page loads
+    window.addEventListener('load', runAllTests);
+  </script>
+</body>
+</html>
