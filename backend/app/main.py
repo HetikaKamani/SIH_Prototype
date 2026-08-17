@@ -5,6 +5,7 @@ from datetime import datetime
 import shutil
 from uuid import uuid4
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.vision_engine import detect_objects, vision_to_complaint
 from app.complaint_engine import classify_complaint
@@ -46,6 +47,27 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# ==================================================
+# CORS CONFIGURATION
+# ==================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://localhost:8001",
+        "http://localhost:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8001",
+        "http://127.0.0.1:8080",
+        "*"  # Allow all origins for development
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
