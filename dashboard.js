@@ -204,6 +204,14 @@ const mapState = {
 
 const severityRank = { HIGH: 3, MEDIUM: 2, LOW: 1 };
 
+// Dashboard state — holds real or mock complaints from backend/API
+const dashboardState = {
+  complaints: [],
+  loading: false,
+  error: null,
+  lastLoaded: null,
+};
+
 function normalizeStatus(value) {
   const text = String(value || '').trim();
   if (!text) return 'Pending';
@@ -355,7 +363,7 @@ function renderComplaints(complaints) {
   detailsButtons.forEach(function (button) {
     button.addEventListener('click', function () {
       const complaintId = button.getAttribute('data-complaint-id');
-      const selectedComplaint = mockComplaints.find(function (item) {
+      const selectedComplaint = dashboardState.complaints.find(function (item) {
         return item.complaint_id === complaintId;
       });
       if (selectedComplaint) {
@@ -638,7 +646,7 @@ function createComplaintMarker(complaint) {
     if (!popupBtn) return;
     popupBtn.addEventListener('click', function () {
       const complaintId = popupBtn.getAttribute('data-complaint-id');
-      const selectedComplaint = mockComplaints.find(function (item) {
+      const selectedComplaint = dashboardState.complaints.find(function (item) {
         return item.complaint_id === complaintId;
       });
       if (selectedComplaint) {
@@ -723,13 +731,48 @@ function initializeComplaintMap() {
   }).addTo(mapState.map);
 
   mapState.initialized = true;
-  updateMapMarkers(filterComplaints(mockComplaints));
+
+  const config = window.RailMadadAPI ? window.RailMadadAPI.getConfig() : { USE_MOCK_DATA: true };
+  if (config.USE_MOCK_DATA) {
+    updateMapMarkers(filterComplaints(mockComplaints));
+  } else {
+    updateMapMarkers([]);
+  }
 }
 
 function renderDashboard() {
-  const filtered = filterComplaints(mockComplaints);
+  const config = window.RailMadadAPI ? window.RailMadadAPI.getConfig() : { USE_MOCK_DATA: true };
+
+  if (dashboardState.error && !config.USE_MOCK_DATA) {
+    els.kpiTotal.textContent = '0';
+    els.kpiHigh.textContent = '0';
+    els.kpiMedium.textContent = '0';
+    els.kpiLow.textContent = '0';
+    
+    els.complaintsContainer.innerHTML = [
+      '<div class="error-container" style="padding: 24px; text-align: center; background: #fff5f5; border: 1px solid #fee2e2; border-radius: 12px; margin-top: 16px;">',
+      '  <div style="font-size: 32px; margin-bottom: 8px;">⚠️</div>',
+      '  <h3 style="font-size: 16px; font-weight: 700; color: #991b1b; margin-bottom: 4px;">Unable to connect to Rail Madad server.</h3>',
+      '  <p style="font-size: 13px; color: #b91c1c; margin-bottom: 16px;">Error: ' + escapeHtml(dashboardState.error) + '</p>',
+      '  <button type="button" id="dashboardErrorRetryBtn" class="refresh-btn" style="margin: 0 auto; display: block; background: #ef4444; color: #fff;">Retry Connection</button>',
+      '</div>'
+    ].join('');
+    
+    const retryBtn = document.getElementById('dashboardErrorRetryBtn');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', function() {
+        reloadComplaints();
+      });
+    }
+    
+    els.emptyState.classList.add('hidden');
+    clearMapMarkers();
+    return;
+  }
+
+  const filtered = filterComplaints(dashboardState.complaints);
   const sorted = sortComplaints(filtered);
-  renderKPIs(mockComplaints);
+  renderKPIs(dashboardState.complaints);
   renderComplaints(sorted);
   updateMapMarkers(filtered);
 
@@ -738,6 +781,70 @@ function renderDashboard() {
     els.complaintsContainer.innerHTML = '';
   } else {
     els.emptyState.classList.add('hidden');
+  }
+}
+
+/**
+ * Load complaints from backend API
+ * Falls back to mock data if API fails or USE_MOCK_DATA is true
+ */
+async function loadComplaints() {
+  dashboardState.loading = true;
+  dashboardState.error = null;
+
+  try {
+    if (!window.RailMadadAPI) {
+      throw new Error('API service not loaded. Include api.js before dashboard.js');
+    }
+
+    console.log('[Dashboard] Loading complaints from backend...');
+    const complaints = await window.RailMadadAPI.getComplaints();
+
+    if (!Array.isArray(complaints)) {
+      throw new Error('Invalid response from API');
+    }
+
+    dashboardState.complaints = complaints;
+    dashboardState.lastLoaded = new Date().toISOString();
+    console.log('[Dashboard] Loaded ' + complaints.length + ' complaints from backend');
+
+    return true;
+  } catch (error) {
+    console.error('[Dashboard] Failed to load complaints:', error);
+    dashboardState.error = error.message || String(error);
+
+    const config = window.RailMadadAPI ? window.RailMadadAPI.getConfig() : { USE_MOCK_DATA: true };
+    if (config.USE_MOCK_DATA) {
+      console.log('[Dashboard] Falling back to mock data...');
+      dashboardState.complaints = mockComplaints || [];
+    } else {
+      console.log('[Dashboard] Backend failed and USE_MOCK_DATA is false. Zeroing complaints...');
+      dashboardState.complaints = [];
+    }
+
+    return false;
+  } finally {
+    dashboardState.loading = false;
+  }
+}
+
+/**
+ * Reload complaints from backend
+ */
+async function reloadComplaints() {
+  const success = await loadComplaints();
+
+  const config = window.RailMadadAPI ? window.RailMadadAPI.getConfig() : { USE_MOCK_DATA: true };
+  if (success) {
+    renderDashboard();
+    console.log('[Dashboard] Complaints reloaded successfully');
+  } else {
+    if (config.USE_MOCK_DATA) {
+      console.warn('[Dashboard] Complaints reloaded with fallback to mock data');
+    } else {
+      console.error('[Dashboard] Complaints reload failed');
+    }
+    renderDashboard();
   }
 }
 
@@ -768,7 +875,8 @@ function bindEvents() {
   });
 
   els.refreshBtn.addEventListener('click', function () {
-    renderDashboard();
+    console.log('[Dashboard] Refresh button clicked');
+    reloadComplaints();
   });
 
   els.closeModalBtn.addEventListener('click', function () {
@@ -783,6 +891,38 @@ function bindEvents() {
   });
 }
 
-bindEvents();
-initializeComplaintMap();
-renderDashboard();
+/**
+ * Initialize dashboard — async startup sequence
+ */
+async function initializeDashboard() {
+  console.log('[Dashboard] Starting initialization...');
+
+  // Show loading state
+  els.complaintsContainer.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading complaints...</div>';
+
+  // Bind events first (non-blocking)
+  bindEvents();
+  initializeComplaintMap();
+
+  // Load complaints from backend
+  console.log('[Dashboard] Loading complaints...');
+  const success = await loadComplaints();
+
+  if (!success) {
+    console.warn('[Dashboard] Using fallback mock data');
+  }
+
+  // Render dashboard with loaded data
+  renderDashboard();
+
+  console.log('[Dashboard] Initialization complete');
+  console.log('[Dashboard] Current state:', {
+    complaintCount: dashboardState.complaints.length,
+    loading: dashboardState.loading,
+    error: dashboardState.error,
+    lastLoaded: dashboardState.lastLoaded
+  });
+}
+
+// Start the dashboard initialization
+initializeDashboard();

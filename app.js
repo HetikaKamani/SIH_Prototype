@@ -698,7 +698,7 @@
       els.processingSteps.appendChild(li);
     });
 
-    // Store filtered steps for use in simulateProcessing
+    // Store filtered steps for use in processComplaintWithBackend
     state.processingSteps = filteredSteps;
     state.processingStepCount = filteredSteps.length;
 
@@ -712,8 +712,8 @@
 
     showView('view-processing');
 
-    // Begin simulated processing
-    simulateProcessing(complaint, filteredSteps);
+    // Begin backend processing (replaces simulateProcessing)
+    processComplaintWithBackend(complaint, filteredSteps);
   }
 
   function setStepState(index, status) {
@@ -742,22 +742,109 @@
   }
 
   /**
-   * Simulated processing — progresses through steps one at a time.
-   *
-   * To connect the real backend later, replace this entire function with:
-   *
-   *   async function processComplaintWithAPI(complaint) {
-   *     const res = await fetch(API_URL + '/complaints', {
-   *       method: 'POST',
-   *       headers: { 'Content-Type': 'application/json' },
-   *       body: JSON.stringify(complaint),
-   *     });
-   *     if (!res.ok) throw new Error('Processing failed');
-   *     return await res.json();
-   *   }
-   *
-   * Then call it from startProcessing() and use the returned JSON
-   * to populate the result view via showResult().
+   * Process complaint with real backend API
+   * Replaces simulateProcessing when backend is available
+   */
+  async function processComplaintWithBackend(complaint, filteredSteps) {
+    if (!window.RailMadadAPI) {
+      console.error('[App] API service not loaded');
+      showErrorView(complaint);
+      return;
+    }
+
+    var steps = filteredSteps || PROCESSING_STEPS;
+    var stepIndex = 0;
+    var totalSteps = steps.length;
+
+    try {
+      // Step 0: Media uploaded (immediately completed)
+      setStepState(0, 'completed');
+      updateProgressBar(1);
+      stepIndex = 1;
+
+      // Simulate some steps to show realistic progress
+      // In reality, backend processes everything, but UI shows progress
+      
+      // Step 1: Video frame extraction (if applicable)
+      if (stepIndex < totalSteps && steps[stepIndex].conditional === 'video') {
+        setStepState(stepIndex, 'processing');
+        await sleep(1500);
+        setStepState(stepIndex, 'completed');
+        updateProgressBar(++stepIndex);
+      } else if (stepIndex < totalSteps) {
+        setStepState(stepIndex, 'processing');
+        await sleep(1500);
+        setStepState(stepIndex, 'completed');
+        updateProgressBar(++stepIndex);
+      }
+
+      // Step 2: Privacy protection
+      if (stepIndex < totalSteps) {
+        setStepState(stepIndex, 'processing');
+        await sleep(1500);
+        setStepState(stepIndex, 'completed');
+        updateProgressBar(++stepIndex);
+      }
+
+      // Step 3: Analyzing complaint - ACTUAL BACKEND CALL
+      if (stepIndex < totalSteps) {
+        setStepState(stepIndex, 'processing');
+
+        console.log('[App] Submitting complaint to backend...');
+        var result;
+
+        // If there's a photo/video frame, use image analysis
+        if (complaint.media && complaint.media.video_frame && complaint.media.video_frame.blob) {
+          console.log('[App] Processing with video frame...');
+          result = await window.RailMadadAPI.submitComplaintWithImage(
+            complaint.media.video_frame.blob,
+            complaint
+          );
+        } else if (complaint.media && complaint.media.photo && complaint.media.photo.file) {
+          console.log('[App] Processing with photo...');
+          result = await window.RailMadadAPI.submitComplaintWithImage(
+            complaint.media.photo.file,
+            complaint
+          );
+        } else {
+          console.log('[App] Processing with text...');
+          result = await window.RailMadadAPI.submitComplaint(complaint);
+        }
+
+        console.log('[App] Backend response:', result);
+        setStepState(stepIndex, 'completed');
+        updateProgressBar(++stepIndex);
+      }
+
+      // Remaining steps: complete them quickly
+      while (stepIndex < totalSteps) {
+        setStepState(stepIndex, 'processing');
+        await sleep(800);
+        setStepState(stepIndex, 'completed');
+        updateProgressBar(++stepIndex);
+      }
+
+      // Success: show result
+      showResult(result);
+
+    } catch (error) {
+      console.error('[App] Backend processing failed:', error);
+      showErrorView(complaint);
+    }
+  }
+
+  /**
+   * Sleep helper for async processing
+   */
+  function sleep(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  /**
+   * Simulated processing — kept for reference/fallback
+   * This is now replaced by processComplaintWithBackend
    */
   function simulateProcessing(complaint, filteredSteps) {
     var steps = filteredSteps || PROCESSING_STEPS;
