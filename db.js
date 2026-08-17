@@ -186,6 +186,25 @@
       throw new Error('Complaint payload is required.');
     }
 
+    // Use real backend API if available
+    if (window.RailMadadAPI) {
+      try {
+        console.log('[DB] Submitting offline complaint to backend via API...');
+        var result = await window.RailMadadAPI.submitComplaint(complaint);
+        console.log('[DB] Offline complaint submitted successfully:', result);
+        return {
+          source: 'Hetika Backend',
+          complaint: result,
+          message: 'Complaint synced with backend.',
+          _synced: true
+        };
+      } catch (error) {
+        console.error('[DB] Failed to sync with backend:', error);
+        throw error;
+      }
+    }
+
+    // Fallback to mock API if RailMadadAPI not available
     if (API_CONFIG.useMock) {
       return new Promise(function (resolve) {
         setTimeout(function () {
@@ -202,6 +221,7 @@
       });
     }
 
+    // Fallback to direct fetch if configured
     if (!window.fetch) {
       throw new Error('Fetch API is unavailable in this browser.');
     }
